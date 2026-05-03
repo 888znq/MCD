@@ -125,6 +125,13 @@
             display: flex; align-items: center; justify-content: center;
             color: #00ffff; font-size: 0.7rem; font-weight: bold; z-index: 10;
         }
+        .delete-tab-btn {
+            position: absolute; top: 10px; right: 10px; padding: 5px 10px; z-index: 30;
+            background: none; border: 1px solid #ff0000; color: #ff0000; cursor: pointer;
+            font-size: 0.6rem; font-weight: bold; text-transform: uppercase; border-radius: 4px;
+            transition: 0.2s;
+        }
+       .delete-tab-btn:hover { background: #ff0000; color: white; }
     </style>
 </head>
 <body>
@@ -550,7 +557,18 @@
                     var content = document.createElement('div');
                     content.className = 'tab-content custom-tab-content';
                     content.id = contentId;
+
+                    var deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-tab-btn';
+                    deleteBtn.innerText = '✕ Delete Tab';
+                    deleteBtn.onclick = () => {
+                        if (confirm(`Permanently delete "${t.name}"?`)) {
+                            set(ref(db, `customTabs/${key}`), null);
+                        }
+                    };
+
                     content.innerHTML = `<iframe src="${t.url}" style="width: 100%; height: 100%; border: none; display: block; overflow: hidden;" allow="autoplay"></iframe>`;
+                    content.appendChild(deleteBtn);
                     mainDisplay.appendChild(content);
                 });
             }
