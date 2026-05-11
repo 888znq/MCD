@@ -46,13 +46,8 @@
         .bottom-bar::-webkit-scrollbar { display: none; }
         #add-tab-btn { font-size: 1.2rem; cursor: pointer; min-width: 40px; }
 
-        /* 0 padding to allow edge-to-edge. Flexbox centers the grid. */
         .tab-content { display: none; width: 100%; height: 100%; position: relative; align-items: center; justify-content: center; padding: 0; }
         .tab-content.active { display: flex; }
-
-        /* LIMITS ASPECT FIT */
-        #content-limits { padding: 0 !important; background-color: #000432; overflow: hidden; }
-        .limits-video { width: 100%; height: 100%; object-fit: contain; }
 
         /* 3. Grid Styling */
         .dynamic-grid { display: grid; gap: 3px; background-color: transparent; }
@@ -63,17 +58,12 @@
             font-weight: 700; text-align: center; font-size: clamp(7px, 1vw, 12px); outline: none;
         }
         
-        /* Content Wrapper ensures clicks pass through to the main cell for completing tasks */
         .content-wrapper { pointer-events: none; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
         .content-wrapper img { width: 100%; height: 100%; object-fit: cover; }
         
         .grid-item.completed { color: #00ff00; border-color: #00ff00; }
         .grid-item.completed::after { content: ''; position: absolute; inset: 0; border: 1px solid #00ff00; pointer-events: none; }
         .grid-item.swap-source { border: 2px solid #ffff00 !important; box-shadow: 0 0 10px #ffff00; }
-
-        /* MISSION 12x11 SPECIAL */
-        #grid-mission { display: grid; gap: 3px; }
-        .merged-box { grid-column: span 4; grid-row: span 6; aspect-ratio: auto !important; }
 
         /* 4. Controls & Navigation Items */
         .bottom-controls-wrapper { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 25; }
@@ -85,13 +75,9 @@
         }
         .ctrl-btn:hover { background: white; color: #000432; }
         .lock-btn { position: absolute; top: 10px; left: 10px; padding: 5px 10px; z-index: 30; }
-        .sync-btn { position: absolute; top: 10px; left: 80px; padding: 5px 10px; z-index: 30; border-color: #00ffff; color: #00ffff; }
         .lock-btn.locked { background: #ff0000; color: white; border-color: #ff0000; }
         .lock-btn.unlocked { background: transparent; color: #00ff00; border-color: #00ff00; }
         
-        #reset-btn { background: none; border: none; cursor: pointer; }
-        .infinity-logo { width: 34px; height: 34px; stroke: #ff0000; display: block; }
-
         .nav-item { 
             display: flex; align-items: center; justify-content: center; border-right: 1px solid white; 
             font-size: clamp(0.5rem, 0.7vw, 0.65rem); font-weight: bold; text-transform: uppercase; cursor: pointer; 
@@ -131,66 +117,14 @@
             font-size: 0.6rem; font-weight: bold; text-transform: uppercase; border-radius: 4px;
             transition: 0.2s;
         }
-       .delete-tab-btn:hover { background: #ff0000; color: white; }
+        .delete-tab-btn:hover { background: #ff0000; color: white; }
     </style>
 </head>
 <body>
 
-    <div class="main-display">
-        <div class="tab-content active" id="content-mission">
-            <button class="ctrl-btn lock-btn unlocked" id="lock-mission" onclick="toggleLock('mission')">Unlock</button>
-            <div id="grid-mission"></div>
-        </div>
-
-        <div class="tab-content" id="content-system">
-            <button class="ctrl-btn lock-btn unlocked" id="lock-system" onclick="toggleLock('system')">Unlock</button>
-            <div id="grid-system" class="dynamic-grid"></div>
-            <div class="bottom-controls-wrapper">
-                <div class="grid-ctrls-system" style="display: flex; gap: 5px;">
-                    <button class="ctrl-btn btn-wide" onclick="changeSize('system', 'rows', 1)">+</button>
-                    <button class="ctrl-btn btn-wide" onclick="changeSize('system', 'rows', -1)">-</button>
-                </div>
-            </div>
-            <div class="controls-col grid-ctrls-system">
-                <button class="ctrl-btn btn-tall" onclick="changeSize('system', 'cols', 1)">+</button>
-                <button class="ctrl-btn btn-tall" onclick="changeSize('system', 'cols', -1)">-</button>
-            </div>
-        </div>
-
-        <div class="tab-content" id="content-routine">
-            <button class="ctrl-btn lock-btn unlocked" id="lock-routine" onclick="toggleLock('routine')">Unlock</button>
-            <button class="ctrl-btn sync-btn" onclick="syncSpecificImages('routine')">Sync Routine</button>
-            <div id="grid-routine" class="dynamic-grid"></div>
-            <div class="bottom-controls-wrapper">
-                <button id="reset-btn" onclick="resetActiveGrid()">
-                    <svg class="infinity-logo" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4zm0 0c2 2.67 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.33-6 4z"/></svg>
-                </button>
-                <div class="grid-ctrls-routine" style="display: flex; gap: 5px;">
-                    <button class="ctrl-btn btn-wide" onclick="changeSize('routine', 'rows', 1)">+</button>
-                    <button class="ctrl-btn btn-wide" onclick="changeSize('routine', 'rows', -1)">-</button>
-                </div>
-            </div>
-            <div class="controls-col grid-ctrls-routine">
-                <button class="ctrl-btn btn-tall" onclick="changeSize('routine', 'cols', 1)">+</button>
-                <button class="ctrl-btn btn-tall" onclick="changeSize('routine', 'cols', -1)">-</button>
-            </div>
-        </div>
-
-        <div class="tab-content" id="content-limits">
-            <video class="limits-video" src="https://ik.imagekit.io/bbhmnlp5p/Untitled%20design.mp4" autoplay loop muted playsinline></video>
-        </div>
-
-        <div class="tab-content" id="content-fft">
-            <iframe src="https://888znq.github.io/FFT/" style="width: 100%; height: 100%; border: none; display: block; overflow: hidden;" allow="autoplay"></iframe>
-        </div>
-    </div>
+    <div class="main-display"></div>
 
     <div class="bottom-bar" id="bottom-bar">
-        <div class="nav-item active" data-target="content-mission">Mission : Impossible</div>
-        <div class="nav-item" data-target="content-system">System</div>
-        <div class="nav-item" data-target="content-routine">Routine</div>
-        <div class="nav-item" data-target="content-limits">There Are No Limits</div>
-        <div class="nav-item" data-target="content-fft">FFT</div>
         <div class="nav-item" id="add-tab-btn">+</div>
     </div>
 
@@ -198,7 +132,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // IMGBB API KEY HERE 
         const IMGBB_API_KEY = "c6cb2a9badd0a53af93636523c72211e";
 
         const firebaseConfig = {
@@ -214,8 +147,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
-        const apps = ['mission', 'system', 'routine'];
-        const lockedStates = { mission: false, system: false, routine: false };
+        const lockedStates = {};
         let swapSource = null;
         let targetCellForUpload = null; 
 
@@ -229,11 +161,6 @@
         uploaderInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file || !targetCellForUpload) return;
-
-            if (IMGBB_API_KEY === "PASTE_YOUR_API_KEY_HERE") {
-                alert("Please add your ImgBB API Key in the code first!");
-                return;
-            }
 
             const { appName, cellRef, cellEl } = targetCellForUpload;
 
@@ -270,28 +197,10 @@
             }
         });
 
-        const routineImageList = [
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/26.png?updatedAt=1774822766825", "https://ik.imagekit.io/bbhmnlp5p/Routine/20.png?updatedAt=1774822766814",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/28.png?updatedAt=1774822766735", "https://ik.imagekit.io/bbhmnlp5p/Routine/16.png?updatedAt=1774822766718",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/29.png?updatedAt=1774822766691", "https://ik.imagekit.io/bbhmnlp5p/Routine/14.png?updatedAt=1774822766683",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/22.png?updatedAt=1774822766517", "https://ik.imagekit.io/bbhmnlp5p/Routine/23.png?updatedAt=1774822766522",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/15.png?updatedAt=1774822766446", "https://ik.imagekit.io/bbhmnlp5p/Routine/1.png?updatedAt=1774822766436",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/19.png?updatedAt=1774822766422", "https://ik.imagekit.io/bbhmnlp5p/Routine/18.png?updatedAt=1774822766427",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/4.png?updatedAt=1774822766423", "https://ik.imagekit.io/bbhmnlp5p/Routine/2.png?updatedAt=1774822766425",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/11.png?updatedAt=1774822766348", "https://ik.imagekit.io/bbhmnlp5p/Routine/9.png?updatedAt=1774822766321",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/5.png?updatedAt=1774822766294", "https://ik.imagekit.io/bbhmnlp5p/Routine/13.png?updatedAt=1774822766253",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/30.png?updatedAt=1774822766263", "https://ik.imagekit.io/bbhmnlp5p/Routine/24.png?updatedAt=1774822766259",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/17.png?updatedAt=1774822766247", "https://ik.imagekit.io/bbhmnlp5p/Routine/21.png?updatedAt=1774822766240",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/27.png?updatedAt=1774822766236", "https://ik.imagekit.io/bbhmnlp5p/Routine/25.png?updatedAt=1774822766149",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/8.png?updatedAt=1774822766133", "https://ik.imagekit.io/bbhmnlp5p/Routine/6.png?updatedAt=1774822765900",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/3.png?updatedAt=1774822765892", "https://ik.imagekit.io/bbhmnlp5p/Routine/7.png?updatedAt=1774822765721",
-            "https://ik.imagekit.io/bbhmnlp5p/Routine/12.png?updatedAt=1774822765592", "https://ik.imagekit.io/bbhmnlp5p/Routine/10.png?updatedAt=1774822764865",
-        ];
-
         window.toggleLock = (appName) => set(ref(db, `grids/${appName}/config/locked`), !lockedStates[appName]);
 
         window.changeSize = (appName, type, delta) => {
-            if(lockedStates[appName]) return;
+            if (lockedStates[appName]) return;
             const configRef = ref(db, `grids/${appName}/config`);
             onValue(configRef, (snap) => {
                 let current = snap.val()?.[type] || 5;
@@ -299,31 +208,18 @@
             }, { onlyOnce: true });
         };
 
-        window.syncSpecificImages = (appName) => {
-            if(lockedStates[appName]) return;
-            const shuffled = [...routineImageList].sort(() => Math.random() - 0.5);
-            let imgIdx = 0;
-            onValue(ref(db, `grids/${appName}/config`), (snap) => {
-                const config = snap.val() || {rows:5, cols:5};
-                for(let i=0; i < config.rows * config.cols; i++) {
-                    update(ref(db, `grids/${appName}/data/${Math.floor(i/config.cols)}_${i%config.cols}`), { text: shuffled[imgIdx] || "", completed: false });
-                    imgIdx++;
-                }
-            }, {onlyOnce:true});
-        };
-
         window.resetActiveGrid = () => {
-            const activeId = document.querySelector('.nav-item.active').getAttribute('data-target').replace('content-', '');
+            const activeNav = document.querySelector('.nav-item.active');
+            if (!activeNav) return;
+            const activeId = activeNav.getAttribute('data-target').replace('content-', '');
             onValue(ref(db, `grids/${activeId}/data`), (snap) => {
-                const data = snap.val(); if(!data) return;
-                for(let key in data) update(ref(db, `grids/${activeId}/data/${key}`), { completed: false });
+                const data = snap.val(); if (!data) return;
+                for (let key in data) update(ref(db, `grids/${activeId}/data/${key}`), { completed: false });
             }, { onlyOnce: true });
         };
 
         function renderContent(el, text) {
             const cleanText = text?.trim() || "";
-            
-            // Check for standard extensions, ImgBB, Base64, and Google/Gstatic dynamic images
             const isImage = 
                 /\.(jpg|jpeg|png|webp|gif|svg|avif)($|\?)/i.test(cleanText) || 
                 cleanText.includes("ibb.co") || 
@@ -339,40 +235,32 @@
         function createCell(appName, id, container) {
             const cell = document.createElement('div');
             cell.className = 'grid-item';
-            if (id.includes('merged')) cell.classList.add('merged-box');
             container.appendChild(cell);
 
-            // Inner wrapper for content so buttons stay on top
             const contentDiv = document.createElement('div');
             contentDiv.className = 'content-wrapper';
             cell.appendChild(contentDiv);
 
-            // Create Explicit UI Buttons Overlay
             const actionOverlay = document.createElement('div');
             actionOverlay.className = 'action-overlay';
             
-            const btnSwap = document.createElement('button'); btnSwap.className='cell-btn btn-swap'; btnSwap.innerHTML='🔄'; btnSwap.title='Swap Box';
-            const btnClear = document.createElement('button'); btnClear.className='cell-btn btn-clear'; btnClear.innerHTML='❌'; btnClear.title='Clear Content';
-            const btnText = document.createElement('button'); btnText.className='cell-btn btn-text'; btnText.innerHTML='📝'; btnText.title='Edit Text';
-            const btnUpload = document.createElement('button'); btnUpload.className='cell-btn btn-upload'; btnUpload.innerHTML='📷'; btnUpload.title='Upload Image';
+            const btnSwap  = document.createElement('button'); btnSwap.className  = 'cell-btn btn-swap';   btnSwap.innerHTML  = '🔄'; btnSwap.title  = 'Swap Box';
+            const btnClear = document.createElement('button'); btnClear.className = 'cell-btn btn-clear';  btnClear.innerHTML = '❌'; btnClear.title = 'Clear Content';
+            const btnText  = document.createElement('button'); btnText.className  = 'cell-btn btn-text';   btnText.innerHTML  = '📝'; btnText.title  = 'Edit Text';
+            const btnUpload= document.createElement('button'); btnUpload.className= 'cell-btn btn-upload'; btnUpload.innerHTML= '📷'; btnUpload.title= 'Upload Image';
             
-            actionOverlay.appendChild(btnSwap);
-            actionOverlay.appendChild(btnClear);
-            actionOverlay.appendChild(btnText);
-            actionOverlay.appendChild(btnUpload);
+            actionOverlay.append(btnSwap, btnClear, btnText, btnUpload);
             cell.appendChild(actionOverlay);
 
             const cellRef = ref(db, `grids/${appName}/data/${id}`);
             onValue(cellRef, (snap) => {
-                const val = snap.val() || {text: "", completed: false};
+                const val = snap.val() || { text: "", completed: false };
                 renderContent(contentDiv, val.text);
                 val.completed ? cell.classList.add('completed') : cell.classList.remove('completed');
             });
 
-            // --- Explicit Button Events ---
-            
             btnUpload.addEventListener('click', (e) => {
-                e.stopPropagation(); 
+                e.stopPropagation();
                 if (lockedStates[appName]) return;
                 targetCellForUpload = { appName, id, cellRef, cellEl: cell };
                 uploaderInput.click();
@@ -389,7 +277,6 @@
             btnSwap.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (lockedStates[appName]) return;
-                
                 if (!swapSource) { 
                     swapSource = { id, element: cell }; 
                     cell.classList.add('swap-source'); 
@@ -403,8 +290,8 @@
                         onValue(tRef, (s2) => { 
                             update(sRef, s2.val()); 
                             update(tRef, s1.val()); 
-                        }, {onlyOnce:true}); 
-                    }, {onlyOnce:true});
+                        }, { onlyOnce: true }); 
+                    }, { onlyOnce: true });
                     swapSource.element.classList.remove('swap-source'); 
                     swapSource = null;
                 }
@@ -416,111 +303,65 @@
                 update(cellRef, { text: "", completed: false });
             });
 
-            // Main cell click ALWAYS just toggles completion status now
             cell.addEventListener('click', () => {
                 update(cellRef, { completed: !cell.classList.contains('completed') });
             });
         }
 
-        function initMission() {
-            const container = document.getElementById('grid-mission'); container.innerHTML = '';
-            
-            var mainDisplayHeight = window.innerHeight * (1 - 0.024);
-            var mainDisplayWidth = window.innerWidth;
-            const gap = 3;
-            const rows = 11; const cols = 12;
-            
-            const maxCellW = (mainDisplayWidth - (cols - 1) * gap) / cols;
-            const maxCellH = (mainDisplayHeight - (rows - 1) * gap) / rows;
-            const cellSize = Math.floor(Math.min(maxCellW, maxCellH));
-            
-            container.style.width = `${(cellSize * cols) + ((cols - 1) * gap)}px`;
-            container.style.height = `${(cellSize * rows) + ((rows - 1) * gap)}px`;
-            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-            container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-
-            for (let r = 0; r < 11; r++) {
-                for (let c = 0; c < 12; c++) {
-                    if (r >= 5 && c >= 4) {
-                        if (r === 5 && c === 4) createCell('mission', 'merged_left', container);
-                        if (r === 5 && c === 8) createCell('mission', 'merged_right', container);
-                        continue;
-                    }
-                    createCell('mission', `${r}_${c}`, container);
-                }
-            }
-            onValue(ref(db, `grids/mission/config/locked`), (snap) => {
-                lockedStates.mission = snap.val() || false;
-                const btn = document.getElementById('lock-mission');
-                btn.innerText = lockedStates.mission ? "Locked" : "Unlock";
-                btn.className = `ctrl-btn lock-btn ${lockedStates.mission ? 'locked' : 'unlocked'}`;
-                
-                if(lockedStates.mission) container.classList.remove('grid-unlocked');
-                else container.classList.add('grid-unlocked');
-            });
-        }
-
         function initApp(appName) {
             const container = document.getElementById(`grid-${appName}`);
-            const lockBtn = document.getElementById(`lock-${appName}`);
-            const ctrls = document.querySelectorAll(`.grid-ctrls-${appName}`);
+            const lockBtn   = document.getElementById(`lock-${appName}`);
+            const ctrls     = document.querySelectorAll(`.grid-ctrls-${appName}`);
             
             onValue(ref(db, `grids/${appName}/config`), (snap) => {
                 const config = snap.val() || { rows: 5, cols: 5, locked: false };
                 lockedStates[appName] = config.locked;
-                lockBtn.innerText = config.locked ? "Locked" : "Unlock";
-                lockBtn.className = `ctrl-btn lock-btn ${config.locked ? 'locked' : 'unlocked'}`;
+                lockBtn.innerText    = config.locked ? "Locked" : "Unlock";
+                lockBtn.className    = `ctrl-btn lock-btn ${config.locked ? 'locked' : 'unlocked'}`;
                 ctrls.forEach(c => c.style.display = config.locked ? 'none' : 'flex');
                 
-                if(lockedStates[appName]) container.classList.remove('grid-unlocked');
+                if (lockedStates[appName]) container.classList.remove('grid-unlocked');
                 else container.classList.add('grid-unlocked');
                 
-                var mainDisplayHeight = window.innerHeight * (1 - 0.024);
-                var mainDisplayWidth = window.innerWidth;
                 const gap = 3;
+                const mainDisplayHeight = window.innerHeight * (1 - 0.024);
+                const mainDisplayWidth  = window.innerWidth;
                 
-                const maxCellW = (mainDisplayWidth - (config.cols - 1) * gap) / config.cols;
+                const maxCellW = (mainDisplayWidth  - (config.cols - 1) * gap) / config.cols;
                 const maxCellH = (mainDisplayHeight - (config.rows - 1) * gap) / config.rows;
                 const cellSize = Math.floor(Math.min(maxCellW, maxCellH));
                 
-                container.style.width = `${(cellSize * config.cols) + ((config.cols - 1) * gap)}px`;
-                container.style.height = `${(cellSize * config.rows) + ((config.rows - 1) * gap)}px`;
+                container.style.width               = `${(cellSize * config.cols) + ((config.cols - 1) * gap)}px`;
+                container.style.height              = `${(cellSize * config.rows) + ((config.rows - 1) * gap)}px`;
                 container.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
-                container.style.gridTemplateRows = `repeat(${config.rows}, 1fr)`; 
+                container.style.gridTemplateRows    = `repeat(${config.rows}, 1fr)`; 
                 
                 container.innerHTML = '';
                 for (let i = 0; i < config.rows * config.cols; i++) {
-                    createCell(appName, `${Math.floor(i/config.cols)}_${i%config.cols}`, container);
+                    createCell(appName, `${Math.floor(i / config.cols)}_${i % config.cols}`, container);
                 }
             });
         }
 
-        initMission();
-        initApp('system');
-        initApp('routine');
-        
+        // Track active grid-based tabs so resize re-initialises them
+        const activeGridTabs = new Set();
+
         window.addEventListener('resize', () => {
-            initMission();
-            initApp('system');
-            initApp('routine');
+            activeGridTabs.forEach(name => initApp(name));
         });
-        
+
         window.addNewTabPrompt = () => {
             var name = prompt("Enter Tab Name:");
             if (!name) return;
-            var url = prompt("Enter GitHub Pages URL:");
-            if (!url) return;
+            var url = prompt("Enter GitHub Pages URL (leave blank for a grid tab):");
             var tabId = 'custom_' + Date.now();
-            set(ref(db, `customTabs/${tabId}`), { name, url });
+            set(ref(db, `customTabs/${tabId}`), { name, url: url || "" });
         };
         
         window.bindNavListeners = () => {
             document.querySelectorAll('.nav-item').forEach(tab => {
                 tab.onclick = () => {
-                    if (tab.id === 'add-tab-btn') {
-                        addNewTabPrompt();
-                        return;
-                    }
+                    if (tab.id === 'add-tab-btn') { addNewTabPrompt(); return; }
                     document.querySelectorAll('.nav-item, .tab-content').forEach(el => el.classList.remove('active'));
                     tab.classList.add('active');
                     var targetEl = document.getElementById(tab.dataset.target);
@@ -532,31 +373,28 @@
         onValue(ref(db, 'customTabs'), (snap) => {
             var tabs = snap.val();
             document.querySelectorAll('.custom-nav-item, .custom-tab-content').forEach(el => el.remove());
+            activeGridTabs.clear();
             
             if (tabs) {
-                var bottomBar = document.getElementById('bottom-bar');
+                var bottomBar   = document.querySelector('#bottom-bar');
                 var mainDisplay = document.querySelector('.main-display');
-                var addBtn = document.getElementById('add-tab-btn');
+                var addBtn      = document.getElementById('add-tab-btn');
+                var firstNav    = null;
                 
                 Object.keys(tabs).forEach(key => {
                     var t = tabs[key];
-                    
-                    var tabName = (t.name || "").toLowerCase();
-                    if (tabName.includes("expense") || tabName.includes("route") || tabName.includes("routmap")) {
-                        return;
-                    }
-                    
                     var contentId = `content-${key}`;
                     
                     var nav = document.createElement('div');
-                    nav.className = 'nav-item custom-nav-item';
+                    nav.className    = 'nav-item custom-nav-item';
                     nav.dataset.target = contentId;
-                    nav.innerText = t.name;
+                    nav.innerText    = t.name;
                     bottomBar.insertBefore(nav, addBtn);
+                    if (!firstNav) firstNav = nav;
                     
                     var content = document.createElement('div');
                     content.className = 'tab-content custom-tab-content';
-                    content.id = contentId;
+                    content.id        = contentId;
 
                     var deleteBtn = document.createElement('button');
                     deleteBtn.className = 'delete-tab-btn';
@@ -567,10 +405,44 @@
                         }
                     };
 
-                    content.innerHTML = `<iframe src="${t.url}" style="width: 100%; height: 100%; border: none; display: block; overflow: hidden;" allow="autoplay"></iframe>`;
+                    if (t.url) {
+                        // URL-based tab → iframe
+                        content.innerHTML = `<iframe src="${t.url}" style="width:100%;height:100%;border:none;display:block;overflow:hidden;" allow="autoplay"></iframe>`;
+                    } else {
+                        // Grid-based tab
+                        const appName = key;
+                        activeGridTabs.add(appName);
+                        lockedStates[appName] = false;
+
+                        content.innerHTML = `
+                            <button class="ctrl-btn lock-btn unlocked" id="lock-${appName}" onclick="toggleLock('${appName}')">Unlock</button>
+                            <div id="grid-${appName}" class="dynamic-grid"></div>
+                            <div class="bottom-controls-wrapper">
+                                <div class="grid-ctrls-${appName}" style="display:flex;gap:5px;">
+                                    <button class="ctrl-btn btn-wide" onclick="changeSize('${appName}','rows',1)">+</button>
+                                    <button class="ctrl-btn btn-wide" onclick="changeSize('${appName}','rows',-1)">-</button>
+                                </div>
+                            </div>
+                            <div class="controls-col grid-ctrls-${appName}">
+                                <button class="ctrl-btn btn-tall" onclick="changeSize('${appName}','cols',1)">+</button>
+                                <button class="ctrl-btn btn-tall" onclick="changeSize('${appName}','cols',-1)">-</button>
+                            </div>`;
+                    }
+
                     content.appendChild(deleteBtn);
                     mainDisplay.appendChild(content);
+
+                    // Init grid after DOM is in place
+                    if (!t.url) {
+                        requestAnimationFrame(() => initApp(key));
+                    }
                 });
+
+                // Activate first tab if nothing is active
+                if (!document.querySelector('.nav-item.active:not(#add-tab-btn)') && firstNav) {
+                    firstNav.classList.add('active');
+                    document.getElementById(firstNav.dataset.target)?.classList.add('active');
+                }
             }
             bindNavListeners();
         });
@@ -581,7 +453,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => { 
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('Service Worker registration failed: ', err)); 
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed:', err)); 
             });
         }
     </script>
