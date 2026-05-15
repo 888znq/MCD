@@ -148,7 +148,6 @@
         const db  = getDatabase(app);
 
         // ─── Per-tab state ────────────────────────────────────────────────────────
-        // tabRegistry[key] = { type: 'grid'|'iframe', unsubs: Set<fn>, iframeEl?, url? }
         const tabRegistry  = {};
         const lockedStates = {};
         let   activeTabKey = null;
@@ -205,48 +204,45 @@
             const reg = tabRegistry[key];
             if (!reg) return;
 
-            // Kill every Firebase listener registered for this tab
             reg.unsubs.forEach(unsub => unsub());
             reg.unsubs.clear();
 
-            // Blank the iframe so the embedded page stops executing
             if (reg.type === 'iframe' && reg.iframeEl) {
                 reg.iframeEl.src = '';
             }
         }
 
         // ─── Pre-warm: start all tabs in background so switching is instant ───────
-                function prewarmTab(key) {
-                    const reg = tabRegistry[key];
-                    if (!reg || reg.prewarmed) return;
-                    reg.prewarmed = true;
-                    if (reg.type === 'iframe') {
-                        if (reg.iframeEl && !reg.iframeEl.src) reg.iframeEl.src = reg.url;
-                    } else {
-                        if (reg.unsubs.size === 0) initApp(key, reg.unsubs);
-                    }
-                }
+        function prewarmTab(key) {
+            const reg = tabRegistry[key];
+            if (!reg || reg.prewarmed) return;
+            reg.prewarmed = true;
+            if (reg.type === 'iframe') {
+                if (reg.iframeEl && !reg.iframeEl.src) reg.iframeEl.src = reg.url;
+            } else {
+                if (reg.unsubs.size === 0) initApp(key, reg.unsubs);
+            }
+        }
         
-                // ─── Activate: just flip visibility — data is already live ───────────────
-                function activateTab(key) {
-                    if (activeTabKey === key) return;
-        
-                    if (activeTabKey !== null) {
-                        document.querySelector(`.nav-item[data-key="${activeTabKey}"]`)?.classList.remove('active');
-                        document.getElementById(`content-${activeTabKey}`)?.classList.remove('active');
-                    }
-        
-                    activeTabKey = key;
-                    const reg = tabRegistry[key];
-                    if (!reg) return;
-        
-                    document.querySelector(`.nav-item[data-key="${key}"]`)?.classList.add('active');
-                    const contentEl = document.getElementById(`content-${key}`);
-                    if (contentEl) contentEl.classList.add('active');
-        
-                    // Ensure this tab is warmed (handles edge cases where prewarm hadn't run yet)
-                    prewarmTab(key);
-                }
+        // ─── Activate: just flip visibility — data is already live ───────────────
+        function activateTab(key) {
+            if (activeTabKey === key) return;
+
+            if (activeTabKey !== null) {
+                document.querySelector(`.nav-item[data-key="${activeTabKey}"]`)?.classList.remove('active');
+                document.getElementById(`content-${activeTabKey}`)?.classList.remove('active');
+            }
+
+            activeTabKey = key;
+            const reg = tabRegistry[key];
+            if (!reg) return;
+
+            document.querySelector(`.nav-item[data-key="${key}"]`)?.classList.add('active');
+            const contentEl = document.getElementById(`content-${key}`);
+            if (contentEl) contentEl.classList.add('active');
+
+            prewarmTab(key);
+        }
 
         // ─── Grid init (returns listeners via the unsubs Set) ────────────────────
         function initApp(appName, unsubs) {
@@ -276,7 +272,6 @@
                 container.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
                 container.style.gridTemplateRows    = `repeat(${config.rows}, 1fr)`;
 
-                // Remove old cell listeners before rebuilding
                 if (unsubs._cellUnsubs) {
                     unsubs._cellUnsubs.forEach(u => u());
                     unsubs._cellUnsubs = [];
@@ -318,7 +313,6 @@
 
             const cellRef = ref(db, `grids/${appName}/data/${id}`);
 
-            // This is the only listener for this cell — its unsub is returned
             const cellUnsub = onValue(cellRef, (snap) => {
                 const val = snap.val() || { text: "", completed: false };
                 renderContent(contentDiv, val.text);
@@ -354,8 +348,9 @@
                     const tRef = ref(db, `grids/${appName}/data/${id}`);
                     onValue(sRef, (s1) => {
                         onValue(tRef, (s2) => {
-                            update(sRef, s2.val());
-                            update(tRef, s1.val());
+                            // Fixed: Using set() with a fallback empty object to prevent Firebase null update errors
+                            set(sRef, s2.val() || { text: "", completed: false });
+                            set(tRef, s1.val() || { text: "", completed: false });
                         }, { onlyOnce: true });
                     }, { onlyOnce: true });
                     swapSource.element.classList.remove('swap-source');
@@ -404,22 +399,21 @@
             }
         });
 
-        // ─── customTabs listener — manages DOM structure only ────────────────────
-        // Does NOT start any grid/iframe activity — that's activateTab()'s job.
+        // ─── customTabs listener — manages DOM structure via Diffing ─────────────
         onValue(ref(db, 'customTabs'), (snap) => {
             const tabs = snap.val();
 
-            // Deactivate + teardown registry for tabs being removed
+            // 1. Deactivate + teardown DOM and registry ONLY for tabs being removed
             document.querySelectorAll('.custom-nav-item').forEach(el => {
                 const k = el.dataset.key;
                 if (!tabs || !tabs[k]) {
                     deactivateTab(k);
                     delete tabRegistry[k];
+                    el.remove(); // Remove the nav item
+                    const contentEl = document.getElementById(`content-${k}`);
+                    if (contentEl) contentEl.remove(); // Remove the content pane
                 }
             });
-
-            // Remove old DOM
-            document.querySelectorAll('.custom-nav-item, .custom-tab-content').forEach(el => el.remove());
 
             if (!tabs) {
                 activeTabKey = null;
@@ -435,86 +429,85 @@
                 const t = tabs[key];
                 firstKey = firstKey ?? key;
 
-                // ── Nav item ──────────────────────────────────────────────────
-                const nav = document.createElement('div');
-                nav.className      = 'nav-item custom-nav-item';
-                nav.dataset.key    = key;
-                nav.dataset.target = `content-${key}`;
-                nav.innerText      = t.name;
-                nav.addEventListener('click', () => activateTab(key));
-                bottomBar.insertBefore(nav, addBtn);
+                // 2. CHECK IF TAB ALREADY EXISTS IN DOM
+                let nav = document.querySelector(`.custom-nav-item[data-key="${key}"]`);
 
-                // ── Content pane ──────────────────────────────────────────────
-                const content = document.createElement('div');
-                content.className = 'tab-content custom-tab-content';
-                content.id        = `content-${key}`;
+                // ONLY BUILD DOM IF IT DOES NOT EXIST YET
+                if (!nav) {
+                    // ── Nav item ──────────────────────────────────────────────────
+                    nav = document.createElement('div');
+                    nav.className      = 'nav-item custom-nav-item';
+                    nav.dataset.key    = key;
+                    nav.dataset.target = `content-${key}`;
+                    nav.innerText      = t.name;
+                    nav.addEventListener('click', () => activateTab(key));
+                    bottomBar.insertBefore(nav, addBtn);
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-tab-btn';
-                deleteBtn.innerText = '✕ Delete Tab';
-                deleteBtn.onclick = () => {
-                    if (confirm(`Permanently delete "${t.name}"?`)) {
-                        if (activeTabKey === key) {
-                            deactivateTab(key);
-                            activeTabKey = null;
+                    // ── Content pane ──────────────────────────────────────────────
+                    const content = document.createElement('div');
+                    content.className = 'tab-content custom-tab-content';
+                    content.id        = `content-${key}`;
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-tab-btn';
+                    deleteBtn.innerText = '✕ Delete Tab';
+                    deleteBtn.onclick = () => {
+                        if (confirm(`Permanently delete "${t.name}"?`)) {
+                            if (activeTabKey === key) {
+                                deactivateTab(key);
+                                activeTabKey = null;
+                            }
+                            set(ref(db, `customTabs/${key}`), null);
                         }
-                        set(ref(db, `customTabs/${key}`), null);
-                    }
-                };
+                    };
 
-                if (t.url) {
-                    // ── iframe tab ────────────────────────────────────────────
-                    const iframe = document.createElement('iframe');
-                    iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;overflow:hidden;';
-                    iframe.allow = 'autoplay';
-                    // src intentionally left blank — set on activate
-                    content.appendChild(iframe);
-                    content.appendChild(deleteBtn);
+                    if (t.url) {
+                        // ── iframe tab ────────────────────────────────────────────
+                        const iframe = document.createElement('iframe');
+                        iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;overflow:hidden;';
+                        iframe.allow = 'autoplay';
+                        content.appendChild(iframe);
+                        content.appendChild(deleteBtn);
 
-                    if (!tabRegistry[key]) {
                         tabRegistry[key] = { type: 'iframe', unsubs: new Set(), iframeEl: iframe, url: t.url };
                     } else {
-                        // Update reference in case DOM was rebuilt
-                        tabRegistry[key].iframeEl = iframe;
-                        tabRegistry[key].url      = t.url;
-                    }
-                } else {
-                    // ── Grid tab ──────────────────────────────────────────────
-                    content.innerHTML = `
-                        <button class="ctrl-btn lock-btn unlocked" id="lock-${key}" onclick="toggleLock('${key}')">Unlock</button>
-                        <div id="grid-${key}" class="dynamic-grid"></div>
-                        <div class="bottom-controls-wrapper">
-                            <div class="grid-ctrls-${key}" style="display:flex;gap:5px;">
-                                <button class="ctrl-btn btn-wide" onclick="changeSize('${key}','rows',1)">+</button>
-                                <button class="ctrl-btn btn-wide" onclick="changeSize('${key}','rows',-1)">-</button>
+                        // ── Grid tab ──────────────────────────────────────────────
+                        content.innerHTML = `
+                            <button class="ctrl-btn lock-btn unlocked" id="lock-${key}" onclick="toggleLock('${key}')">Unlock</button>
+                            <div id="grid-${key}" class="dynamic-grid"></div>
+                            <div class="bottom-controls-wrapper">
+                                <div class="grid-ctrls-${key}" style="display:flex;gap:5px;">
+                                    <button class="ctrl-btn btn-wide" onclick="changeSize('${key}','rows',1)">+</button>
+                                    <button class="ctrl-btn btn-wide" onclick="changeSize('${key}','rows',-1)">-</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="controls-col grid-ctrls-${key}">
-                            <button class="ctrl-btn btn-tall" onclick="changeSize('${key}','cols',1)">+</button>
-                            <button class="ctrl-btn btn-tall" onclick="changeSize('${key}','cols',-1)">-</button>
-                        </div>`;
-                    content.appendChild(deleteBtn);
-                    lockedStates[key] = false;
+                            <div class="controls-col grid-ctrls-${key}">
+                                <button class="ctrl-btn btn-tall" onclick="changeSize('${key}','cols',1)">+</button>
+                                <button class="ctrl-btn btn-tall" onclick="changeSize('${key}','cols',-1)">-</button>
+                            </div>`;
+                        content.appendChild(deleteBtn);
+                        lockedStates[key] = false;
 
-                    if (!tabRegistry[key]) {
                         tabRegistry[key] = { type: 'grid', unsubs: new Set() };
                     }
-                }
 
-                mainDisplay.appendChild(content);
+                    mainDisplay.appendChild(content);
+                } else {
+                    // If the tab already exists, just update its name in case it changed
+                    nav.innerText = t.name;
+                }
             });
 
             // Pre-warm every tab in background so switching needs zero load time
-                        Object.keys(tabs).forEach(k => prewarmTab(k));
-            
-                        // Re-activate the previously active tab if it still exists,
-                        // otherwise fall back to the first tab.
-                        const targetKey = (activeTabKey && tabs[activeTabKey]) ? activeTabKey : firstKey;
-                        if (targetKey) {
-                            const prev = activeTabKey;
-                            activeTabKey = null;
-                            activateTab(targetKey);
-                        }
+            Object.keys(tabs).forEach(k => prewarmTab(k));
+
+            // Re-activate the previously active tab if it still exists, otherwise fall back to first tab
+            const targetKey = (activeTabKey && tabs[activeTabKey]) ? activeTabKey : firstKey;
+            if (targetKey) {
+                const prev = activeTabKey;
+                activeTabKey = null;
+                activateTab(targetKey);
+            }
         });
 
         // ─── Add-tab button ───────────────────────────────────────────────────────
