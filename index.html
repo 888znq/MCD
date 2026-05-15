@@ -215,34 +215,38 @@
             }
         }
 
-        // ─── Activate: spin up listeners for the chosen tab ──────────────────────
-        function activateTab(key) {
-            if (activeTabKey === key) return;
-
-            // Tear down the previously active tab first
-            if (activeTabKey !== null) {
-                deactivateTab(activeTabKey);
-                document.querySelector(`.nav-item[data-key="${activeTabKey}"]`)?.classList.remove('active');
-                document.getElementById(`content-${activeTabKey}`)?.classList.remove('active');
-            }
-
-            activeTabKey = key;
-            const reg = tabRegistry[key];
-            if (!reg) return;
-
-            // Show the content pane
-            document.querySelector(`.nav-item[data-key="${key}"]`)?.classList.add('active');
-            const contentEl = document.getElementById(`content-${key}`);
-            if (contentEl) contentEl.classList.add('active');
-
-            if (reg.type === 'iframe') {
-                // Restore iframe src
-                if (reg.iframeEl) reg.iframeEl.src = reg.url;
-            } else {
-                // Grid: spin up Firebase listeners
-                initApp(key, reg.unsubs);
-            }
-        }
+        // ─── Pre-warm: start all tabs in background so switching is instant ───────
+                function prewarmTab(key) {
+                    const reg = tabRegistry[key];
+                    if (!reg || reg.prewarmed) return;
+                    reg.prewarmed = true;
+                    if (reg.type === 'iframe') {
+                        if (reg.iframeEl && !reg.iframeEl.src) reg.iframeEl.src = reg.url;
+                    } else {
+                        if (reg.unsubs.size === 0) initApp(key, reg.unsubs);
+                    }
+                }
+        
+                // ─── Activate: just flip visibility — data is already live ───────────────
+                function activateTab(key) {
+                    if (activeTabKey === key) return;
+        
+                    if (activeTabKey !== null) {
+                        document.querySelector(`.nav-item[data-key="${activeTabKey}"]`)?.classList.remove('active');
+                        document.getElementById(`content-${activeTabKey}`)?.classList.remove('active');
+                    }
+        
+                    activeTabKey = key;
+                    const reg = tabRegistry[key];
+                    if (!reg) return;
+        
+                    document.querySelector(`.nav-item[data-key="${key}"]`)?.classList.add('active');
+                    const contentEl = document.getElementById(`content-${key}`);
+                    if (contentEl) contentEl.classList.add('active');
+        
+                    // Ensure this tab is warmed (handles edge cases where prewarm hadn't run yet)
+                    prewarmTab(key);
+                }
 
         // ─── Grid init (returns listeners via the unsubs Set) ────────────────────
         function initApp(appName, unsubs) {
@@ -500,16 +504,17 @@
                 mainDisplay.appendChild(content);
             });
 
-            // Re-activate the previously active tab if it still exists,
-            // otherwise fall back to the first tab.
-            const targetKey = (activeTabKey && tabs[activeTabKey]) ? activeTabKey : firstKey;
-            if (targetKey) {
-                // Force re-activation even if key matches (DOM was rebuilt)
-                const prev = activeTabKey;
-                activeTabKey = null;          // reset so activateTab doesn't short-circuit
-                if (prev !== targetKey) deactivateTab(prev);
-                activateTab(targetKey);
-            }
+            // Pre-warm every tab in background so switching needs zero load time
+                        Object.keys(tabs).forEach(k => prewarmTab(k));
+            
+                        // Re-activate the previously active tab if it still exists,
+                        // otherwise fall back to the first tab.
+                        const targetKey = (activeTabKey && tabs[activeTabKey]) ? activeTabKey : firstKey;
+                        if (targetKey) {
+                            const prev = activeTabKey;
+                            activeTabKey = null;
+                            activateTab(targetKey);
+                        }
         });
 
         // ─── Add-tab button ───────────────────────────────────────────────────────
